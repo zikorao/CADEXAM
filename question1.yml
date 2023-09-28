@@ -1,0 +1,180 @@
+Resources:
+ DDBTable:
+   Type: AWS::DynamoDB::Table
+
+ myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.50.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+      - Key: stack
+        Value: production
+  
+ myInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: stack
+        Value: production
+
+ AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: myVPC
+      InternetGatewayId:
+        Ref: myInternetGateway
+      
+ PubilcRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: myVPC
+      Tags:
+      - Key: stack
+        Value: production
+
+ myRoute:
+    Type: AWS::EC2::Route
+    Properties:
+       RouteTableId:
+         Ref: PubilcRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId:
+         Ref: myInternetGateway
+        
+ Subnet1:
+   Type: AWS::EC2::Subnet
+   Properties:
+    VpcId:
+      Ref: myVPC
+    CidrBlock: 10.50.1.0/24
+    AvailabilityZone: "ca-central-1a"
+    Tags:
+    - Key: stack
+      Value: production
+
+ Subnet2:
+   Type: AWS::EC2::Subnet
+   Properties:
+    VpcId:
+      Ref: myVPC
+    CidrBlock: 10.50.2.0/24
+    AvailabilityZone: "ca-central-1a"
+    Tags:
+    - Key: stack
+      Value: production
+
+ Subnet3:
+   Type: AWS::EC2::Subnet
+   Properties:
+    VpcId:
+      Ref: myVPC
+    CidrBlock: 10.50.3.0/24
+    AvailabilityZone: "ca-central-1b"
+    Tags:
+    - Key: stack
+      Value: production
+
+ Subnet4:
+   Type: AWS::EC2::Subnet
+   Properties:
+    VpcId:
+      Ref: myVPC
+    CidrBlock: 10.50.4.0/24
+    AvailabilityZone: "ca-central-1b"
+    Tags:
+    - Key: stack
+      Value: production
+
+   Subnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: 
+        Ref: Subnet1
+      RouteTableId:
+        Ref: rtb-0556d361bea4596f6
+
+   Subnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: 
+        Ref: Subnet3
+      RouteTableId:
+        Ref: rtb-0556d361bea4596f6
+
+   NATGateway:
+   Type: AWS::EC2::NatGateway
+   Properties:
+      AllocationId: !GetAtt NATGatewayEIP.AllocationId
+      SubnetId: !Ref Subnet1
+      Tags:
+      - Key: stack
+        Value: production
+   
+   NATGatewayEIP:
+      Type: AWS::EC2::EIP
+      Properties:
+         Domain: vpc
+   
+   RouteNATGateway:
+      DependsOn: NATGateway
+      Type: AWS::EC2::Route
+      Properties:
+         RouteTableId: !Ref rtb-07def57f8a15db6e2
+         DestinationCidrBlock: '0.0.0.0/0'
+         NatGatewayId: !Ref NATGateway
+   
+   mySubnetRouteTableAssociation:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+       SubnetId:
+         Ref: subnet-038e1afa3a666e1f0
+       RouteTableId:
+         Ref: rtb-07def57f8a15db6e2
+
+
+   mySubnetRouteTableAssociation2:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+       SubnetId:
+         Ref: subnet-03fbb8ba47ae50ebb
+       RouteTableId:
+         Ref: rtb-07def57f8a15db6e2
+
+   SourceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: myVPC
+      
+   
+   InboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 0.0.0.0/0
+      ToPort: 22
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - SourceSG
+   InboundRule2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 0.0.0.0/0
+      ToPort: 80
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - SourceSG
+
+   MyEC2Instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      SecurityGroups : SourceSG
+      
+   MyEC2Instance2: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      SecurityGroups : SourceSG
